@@ -58,8 +58,10 @@ void MainWindow::receiveFileName(QString name, bool dropped){
     outFileName=inFileName;
     outFileName.chop(3);
     // Se sto combinando due CSV in un unico file di uscita aggiungo la strinca CMB per "combinato"
-    if(ui->checkBox->isChecked())
-        outFileName= outFileName+"CMB";
+    if(ui->checkBox->isChecked()){
+        outFileName.chop(1);
+        outFileName= outFileName+"CMB.";
+    }
     outFileName=outFileName+"ADF";
     if(ui->checkBox->isChecked())
       ui->name2Lbl->setText(inFileName2);
@@ -74,10 +76,10 @@ void MainWindow::receiveFileName(QString name, bool dropped){
 void MainWindow::on_pushButton_clicked()
 {
     QList <QByteArray> names;
-
     QFile inFile(inFileName), inFile2(inFileName2);
     QByteArray line, line2;
     lineCount=0;
+    offsetTime=0;
     if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)){
        ui->txtName2Lbl->setText("Unable to open file for reading!");
        return;
@@ -92,17 +94,19 @@ void MainWindow::on_pushButton_clicked()
     // Leggo e interpreto la riga di intestazione
     line = inFile.readLine();
     // A questo punto, se sono in combine, leggo anche la prima riga del secondo file:
-    if (!inFile2.open(QIODevice::ReadOnly | QIODevice::Text)){
-       ui->txtName2Lbl->setText("Unable to open Second file for reading!");
-       return;
-    }
-    //Per poter combinare i files la prima riga dev'essere identica
-    // Leggo e interpreto la riga di intestazione
-    line2 = inFile2.readLine();
-    if(line!=line2){
+    if(ui->checkBox->isChecked()){
+      if (!inFile2.open(QIODevice::ReadOnly | QIODevice::Text)){
+         ui->txtName2Lbl->setText("Unable to open Second file for reading!");
+         return;
+      }
+      //Per poter combinare i files la prima riga dev'essere identica
+      // Leggo e interpreto la riga di intestazione
+      line2 = inFile2.readLine();
+      if(line!=line2){
         int ret = QMessageBox::warning(this, "VisBlueCSV",
               "Error: the two header lines do not match!");
-      return;
+       return;
+      }
     }
 
     // I primi due caratteri vanno esclusi: probabilmente contengono info tipo BOM
@@ -144,10 +148,21 @@ void MainWindow::on_pushButton_clicked()
        line = inFile.readLine();
        lineCount++;
        QString outLine;
-       outLine=processLine(line);
+       outLine=processLine(line,false);
        if(outLine!="")
-//           out << outLine<<"\n";
           out << outLine;
+    }
+
+    // qui, se richiesto, aggiungo le righe dal secondo file:
+    if(ui->checkBox->isChecked()){
+       while (!inFile2.atEnd()) {
+         line = inFile2.readLine();
+         lineCount++;
+         QString outLine;
+         outLine=processLine(line,true);
+         if(outLine!="")
+            out << outLine;
+        }
     }
     outFile.close();
     ui->txtName2Lbl->setText("File processed!");
@@ -155,11 +170,12 @@ void MainWindow::on_pushButton_clicked()
 
 }
 
-QByteArray MainWindow::processLine(QByteArray line_){
+QByteArray MainWindow::processLine(QByteArray line_, bool secondFile){
   /* Questa funzione analizza la riga in ingresso, letta dall'output del Visblue
    * e determina la stringa contenente la corrispondente riga da scrivere poi sul file
    * di uscita.
   */
+   float timeOffset=0;  // l'offset viene cambiato alla fine della lettura del primo file, e riutilizzato nel secondo file, se si tratta di un combine
    int start=0, end;
    QByteArray ret, timeByteArr;
    QList <QByteArray> fields;
@@ -171,6 +187,7 @@ QByteArray MainWindow::processLine(QByteArray line_){
    timeByteArr=line_.mid(start,end-start);
 
    static bool firstRun=true;
+   // Notare che i files di visblue partono tutti dalla mezzanotte, ch per me diviene l'istante 0. Ciononostante il codice qui sotto è stato scritto per fare la differenza con l'istante iniziale, nell'ipotesi che possa non essere proprio la mezzanotte.
    QTime time;
    if(firstRun)
      startTime=QTime::fromString(timeByteArr);
@@ -178,14 +195,16 @@ QByteArray MainWindow::processLine(QByteArray line_){
    time=QTime::fromString(timeByteArr);
 
    float timeSec=startTime.secsTo(time);
+   // Aggiungo l'offset che è pari all'istante finale del primo file:
+   if(secondFile)
+     timeSec+=offsetTime;
    QByteArray timeSecBA;
    timeSecBA.setNum(timeSec);
-   //Voglio mettere nel file di ouput il tempo in secondi ponendo pari a 0 l'inizio della prova, Pertanto devo fare la differenza fra il tempo corrente e il tempo iniziale:
+
 
    for (int i=0; i<items; i++){
      end=line_.indexOf(";",start);
      QByteArray field=(line_.mid(start,end-start));
-     //Visblue usa icome separatore decimale la vigola, PlotXY il punto. QUindi faccio la conversione:
      int index;
      if((index=field.indexOf(','))>-1)
         field[index]='.';
@@ -194,8 +213,6 @@ QByteArray MainWindow::processLine(QByteArray line_){
    }
 
    // Al posto del campo data-time, metto il tempo in secondi:
-
-
    fields.replace(0,timeSecBA);
 
    QString str;
@@ -206,6 +223,9 @@ QByteArray MainWindow::processLine(QByteArray line_){
      ret+=",";
    }
    ret+=fields[fields.count()-1];
+   //la seguente riga serve per avere disponibile quando si fa la lettura del secondo file, il tempo da mettere come offset temporale
+   if(!secondFile)
+      offsetTime=timeSec;
    return ret;
 }
 

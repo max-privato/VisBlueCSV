@@ -28,12 +28,13 @@ private:
     QTime startTime;  //Istante iniziale della prova memorizzata sul file
     int items,// numero di campi che scriverò nel file di uscita:
     lineCount;
+    float offsetTime;
     QString inFileName, //Nome del file droppato come primo file
             inFileName2, // nome del secondo file nel caso in cui sia richiesto di combinare due files
             outFileName, initialLabel3Text;
     //pari a quelli di input -2 in quanto gli ultimi 2 non li riporto
     Ui::MainWindow *ui;
-    QByteArray processLine(QByteArray line_);
+    QByteArray processLine(QByteArray line_, bool secondFile);
     void receiveFileName(QString name, bool dropped=false);
 
 };
