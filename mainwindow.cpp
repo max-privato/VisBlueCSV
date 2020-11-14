@@ -53,7 +53,7 @@ void MainWindow::receiveFileName(QString name, bool dropped){
     outFileName=inFileName;
     outFileName.chop(3);
     outFileName=outFileName+"ADF";
-    ui->label_4->setText(outFileName);
+    ui->label_4->setText(inFileName);
     ui->label_3->setText(initialLabel3Text);
     ui->label_3->setEnabled(true);
     ui->pushButton->setEnabled(true);
