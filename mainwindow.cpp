@@ -57,7 +57,6 @@ void MainWindow::receiveFileName(QString name, bool dropped){
     ui->label_3->setText(initialLabel3Text);
     ui->label_3->setEnabled(true);
     ui->pushButton->setEnabled(true);
-
 }
 
 void MainWindow::on_pushButton_clicked()
@@ -126,6 +125,8 @@ void MainWindow::on_pushButton_clicked()
     }
     outFile.close();
     ui->label_3->setText("File processed!");
+    ui->pushButton->setEnabled(false);
+
 }
 
 QByteArray MainWindow::processLine(QByteArray line_){
