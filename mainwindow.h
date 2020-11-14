@@ -22,11 +22,15 @@ public:
 private slots:
     void on_pushButton_clicked();
 
+    void on_checkBox_clicked(bool checked);
+
 private:
     QTime startTime;  //Istante iniziale della prova memorizzata sul file
     int items,// numero di campi che scriverò nel file di uscita:
     lineCount;
-    QString inFileName, outFileName, initialLabel3Text;
+    QString inFileName, //Nome del file droppato come primo file
+            inFileName2, // nome del secondo file nel caso in cui sia richiesto di combinare due files
+            outFileName, initialLabel3Text;
     //pari a quelli di input -2 in quanto gli ultimi 2 non li riporto
     Ui::MainWindow *ui;
     QByteArray processLine(QByteArray line_);

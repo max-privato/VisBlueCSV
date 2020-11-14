@@ -5,6 +5,7 @@
 #include <QDate>
 #include <QMimeData>
 #include <QCoreApplication>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -13,8 +14,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     move(90,0);
     setAcceptDrops(true);
-    ui->label_4->setText("");
-    initialLabel3Text=ui->label_3->text();
+    ui->name1Lbl->setText("");
+    initialLabel3Text=ui->txtName2Lbl->text();
     // valuto i parametri passati
     QStringList args;
     for(int i=1; i<QCoreApplication::arguments().count(); i++){
@@ -46,47 +47,72 @@ void MainWindow::dropEvent(QDropEvent *event)
 }
 
 void MainWindow::receiveFileName(QString name, bool dropped){
-    inFileName= name;
     // solo se il file è stato droppato dopo l'apertura va eliminato il primo carattere:
     if(dropped)
-      inFileName.remove(0,1);
+      name.remove(0,1);
+    // se è stato selezionato combine il file che si sta ricevendo è il secondo (inFileName2) che va poi combinato col primo (inFIleName):
+    if(ui->checkBox->isChecked())
+       inFileName2= name;
+    else
+       inFileName= name;
     outFileName=inFileName;
     outFileName.chop(3);
+    // Se sto combinando due CSV in un unico file di uscita aggiungo la strinca CMB per "combinato"
+    if(ui->checkBox->isChecked())
+        outFileName= outFileName+"CMB";
     outFileName=outFileName+"ADF";
-    ui->label_4->setText(inFileName);
-    ui->label_3->setText(initialLabel3Text);
-    ui->label_3->setEnabled(true);
+    if(ui->checkBox->isChecked())
+      ui->name2Lbl->setText(inFileName2);
+    else
+      ui->name1Lbl->setText(inFileName);
+    ui->txtName2Lbl->setText(initialLabel3Text);
+    ui->txtName2Lbl->setEnabled(true);
     ui->pushButton->setEnabled(true);
+    ui->checkBox->setEnabled(true);
 }
 
 void MainWindow::on_pushButton_clicked()
 {
     QList <QByteArray> names;
 
-    QFile inFile(inFileName);
-    QByteArray line;
+    QFile inFile(inFileName), inFile2(inFileName2);
+    QByteArray line, line2;
     lineCount=0;
     if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)){
-       ui->label_3->setText("Unable to open file for reading!");
+       ui->txtName2Lbl->setText("Unable to open file for reading!");
        return;
     }
     QFile outFile(outFileName);
      if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text)){
-         ui->label_3->setText("Unable to open file for writing!");
+         ui->txtName2Lbl->setText("Unable to open file for writing!");
         return;
      }
     QTextStream out(&outFile);
 
     // Leggo e interpreto la riga di intestazione
     line = inFile.readLine();
+    // A questo punto, se sono in combine, leggo anche la prima riga del secondo file:
+    if (!inFile2.open(QIODevice::ReadOnly | QIODevice::Text)){
+       ui->txtName2Lbl->setText("Unable to open Second file for reading!");
+       return;
+    }
+    //Per poter combinare i files la prima riga dev'essere identica
+    // Leggo e interpreto la riga di intestazione
+    line2 = inFile2.readLine();
+    if(line!=line2){
+        int ret = QMessageBox::warning(this, "VisBlueCSV",
+              "Error: the two header lines do not match!");
+      return;
+    }
+
     // I primi due caratteri vanno esclusi: probabilmente contengono info tipo BOM
     line=line.mid(3);
     int startNameIdx=0, endNameIdx;
 
+
     /* C'è un errore nel CV di visblue: viene usato il carattere ';' all'interno del nome delle variabili degli allarmi. Questo rende il file illogico, in quanto questo carattere deve separare i campi. In attesa che l'errore sia risolto direttamente da Visblue, lo correggo qui con un workaround.
 */
     line.replace("[0=Ok;1=Warning;2=Ala","[0=Ok 1=Warning 2=Ala");
-
 
     do {
         if(startNameIdx!=0)
@@ -124,7 +150,7 @@ void MainWindow::on_pushButton_clicked()
           out << outLine;
     }
     outFile.close();
-    ui->label_3->setText("File processed!");
+    ui->txtName2Lbl->setText("File processed!");
     ui->pushButton->setEnabled(false);
 
 }
@@ -173,9 +199,7 @@ QByteArray MainWindow::processLine(QByteArray line_){
    fields.replace(0,timeSecBA);
 
    QString str;
-
    ret="";
-   int iii= fields.count();
    //Nel seguente loop salto gli ultimi due campi che contengono dati che non sono di mio interesse
    for (int i=0; i<items-1; i++){
      ret+=fields[i];
@@ -185,3 +209,18 @@ QByteArray MainWindow::processLine(QByteArray line_){
    return ret;
 }
 
+
+void MainWindow::on_checkBox_clicked(bool checked)
+{
+  if (checked){
+    ui->txtName2Lbl->setEnabled(true);
+    ui->name2Lbl->setEnabled(true);
+    ui->okLbl->setEnabled(false);
+    ui->pushButton->setEnabled(false);
+  }else{
+    ui->txtName2Lbl->setEnabled(false);
+    ui->name2Lbl->setEnabled(false);
+    ui->okLbl->setEnabled(true);
+    ui->pushButton->setEnabled(true);
+  }
+}
