@@ -21,7 +21,6 @@ MainWindow::MainWindow(QWidget *parent)
     for(int i=1; i<QCoreApplication::arguments().count(); i++){
       args.append (QCoreApplication::arguments().at(i));
      }
-    int iii=0;
     if(args.count()>0)
       receiveFileName(args[0]);
 }
@@ -47,6 +46,15 @@ void MainWindow::dropEvent(QDropEvent *event)
 }
 
 void MainWindow::receiveFileName(QString name, bool dropped){
+
+    // Richiedo l'estensione "CSV"
+    QString ext=name.mid(name.count()-3);
+    if(ext.toLower()!="csv"){
+        QMessageBox msgBox;
+        msgBox.setText("The input file must have \"csv\" extension.");
+        msgBox.exec();
+        return;
+    }
     // solo se il file è stato droppato dopo l'apertura va eliminato il primo carattere:
     if(dropped)
       name.remove(0,1);
@@ -103,8 +111,8 @@ void MainWindow::on_pushButton_clicked()
       // Leggo e interpreto la riga di intestazione
       line2 = inFile2.readLine();
       if(line!=line2){
-        int ret = QMessageBox::warning(this, "VisBlueCSV",
-              "Error: the two header lines do not match!");
+        QMessageBox::warning(this, "VisBlueCSV",
+         "Error: the two header lines do not match!");
        return;
       }
     }
@@ -131,8 +139,6 @@ void MainWindow::on_pushButton_clicked()
        startNameIdx=endNameIdx;
     }   while(startNameIdx>-1);
 
-    // Nei files fornite ci sono 7 nomi in più nelle righe di intestazione rispetto ai valori che poi si trovano dopo:
-//    items=names.count()-7;
     items=names.count();
 
     QByteArray header="";
@@ -165,7 +171,7 @@ void MainWindow::on_pushButton_clicked()
         }
     }
     outFile.close();
-    ui->txtName2Lbl->setText("File processed!");
+    ui->messageLbl->setText("File processed!");
     ui->pushButton->setEnabled(false);
 
 }
@@ -175,7 +181,6 @@ QByteArray MainWindow::processLine(QByteArray line_, bool secondFile){
    * e determina la stringa contenente la corrispondente riga da scrivere poi sul file
    * di uscita.
   */
-   float timeOffset=0;  // l'offset viene cambiato alla fine della lettura del primo file, e riutilizzato nel secondo file, se si tratta di un combine
    int start=0, end;
    QByteArray ret, timeByteArr;
    QList <QByteArray> fields;
@@ -186,12 +191,17 @@ QByteArray MainWindow::processLine(QByteArray line_, bool secondFile){
    start=line_.indexOf(" ",start)+1;
    timeByteArr=line_.mid(start,end-start);
 
-   static bool firstRun=true;
-   // Notare che i files di visblue partono tutti dalla mezzanotte, ch per me diviene l'istante 0. Ciononostante il codice qui sotto è stato scritto per fare la differenza con l'istante iniziale, nell'ipotesi che possa non essere proprio la mezzanotte.
+   static bool firstRow=true; //True se è la prima passata dentro processLine (quindi del primo file)
+   static bool SecondFileIniTimeSet=false; //True se è stato selezionato l'istante iniziale del secondo file
+   // Notare che i files di visblue partono tutti dalla mezzanotte, che per me diviene l'istante 0. Ciononostante il codice qui sotto è stato scritto per fare la differenza con l'istante iniziale, nell'ipotesi che possa non essere proprio la mezzanotte.
    QTime time;
-   if(firstRun)
+   if(firstRow)
      startTime=QTime::fromString(timeByteArr);
-   firstRun=false;
+   firstRow=false;
+   if(secondFile && !SecondFileIniTimeSet){
+      startTime=QTime::fromString(timeByteArr);
+      SecondFileIniTimeSet=true;
+   }
    time=QTime::fromString(timeByteArr);
 
    float timeSec=startTime.secsTo(time);

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>321</width>
+    <width>350</width>
     <height>156</height>
    </rect>
   </property>
@@ -163,6 +163,13 @@ Converted files will have &quot;ADF&quot; extension</string>
          </size>
         </property>
        </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="messageLbl">
+        <property name="text">
+         <string>No message</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
