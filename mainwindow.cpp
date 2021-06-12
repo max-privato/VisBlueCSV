@@ -46,6 +46,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 }
 
 void MainWindow::receiveFileName(QString name, bool dropped){
+    /* File che viene mandato in esecuzione iquando un file è droppato sulla finestra*/
 
     // Richiedo l'estensione "CSV"
     QString ext=name.mid(name.count()-3);
@@ -82,6 +83,8 @@ void MainWindow::receiveFileName(QString name, bool dropped){
 }
 
 void MainWindow::on_pushButton_clicked()
+/* In risposta alla pressione dell'ok qui effettuo la lettura e la trauzione
+Faccio uso della funzione processLine(). */
 {
     QList <QByteArray> names;
     QFile inFile(inFileName), inFile2(inFileName2);
