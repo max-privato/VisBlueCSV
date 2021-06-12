@@ -196,7 +196,7 @@ QByteArray MainWindow::processLine(QByteArray line_, bool secondFile){
 
    static bool firstRow=true; //True se è la prima passata dentro processLine (quindi del primo file)
    static bool SecondFileIniTimeSet=false; //True se è stato selezionato l'istante iniziale del secondo file
-   // Notare che i files di visblue partono tutti dalla mezzanotte, che per me diviene l'istante 0. Ciononostante il codice qui sotto è stato scritto per fare la differenza con l'istante iniziale, nell'ipotesi che possa non essere proprio la mezzanotte.
+   // Notare che i files di visblue partono tutti dalla mezzanotte; questo è comodo perché in plotXY il tempo, se messo in ore, diviene l'ora del giorno.
    QTime time;
    if(firstRow)
      startTime=QTime::fromString(timeByteArr);
@@ -207,7 +207,8 @@ QByteArray MainWindow::processLine(QByteArray line_, bool secondFile){
    }
    time=QTime::fromString(timeByteArr);
 
-   float timeSec=startTime.secsTo(time);
+   /* il seguente timeSec dà il tempo corrente in sefoondi. Non ci sono frazioni di secondo, in quanto non sono presenti nel file visblue di partenza. */
+   float timeSec=time.second()+60*time.minute()+3600*time.hour();
    // Aggiungo l'offset che è pari all'istante finale del primo file:
    if(secondFile)
      timeSec+=offsetTime;
